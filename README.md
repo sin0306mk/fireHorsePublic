@@ -4,7 +4,7 @@
 
 > このドキュメントは、システムを管理・説明する立場の方（管理者・自治会役員等）を対象としています。
 > 通知を受け取る側の方は [business-spec.md](business-spec.md) をご覧ください。
-> 技術的な仕様の詳細は [../spec/architecture.md](../spec/architecture.md) を参照してください。
+> 技術的な仕様の詳細は [architecture.md](architecture.md) を参照してください。
 
 ---
 
