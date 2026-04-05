@@ -68,7 +68,7 @@
                              │ HTTPS (LINE Messaging API)
                   ┌──────────▼──────────┐
                   │  LINE Platform      │
-                  │  (push_message)     │
+                  │  (broadcast)        │
                   └─────────────────────┘
 ```
 
@@ -264,9 +264,9 @@ incident_id = SHA256(incident.raw_text.strip())
 | 項目 | 内容 |
 |---|---|
 | ライブラリ | `linebot.v3.messaging` |
-| メソッド | `MessagingApi.push_message` |
+| メソッド | `MessagingApi.broadcast` |
 | 認証 | `LINE_TOKEN_SECRET_NAME`（Secrets Manager シークレット名） |
-| 送信先 | `LINE_USER_ID_SECRET_NAME`（Secrets Manager シークレット名） |
+| 送信先 | チャンネル登録者全員（Broadcast） |
 | メッセージ型 | `TextMessage` |
 
 ### 5-2. AWS SES
@@ -290,7 +290,6 @@ incident_id = SHA256(incident.raw_text.strip())
 | 変数名 | 説明 |
 |---|---|
 | `LINE_TOKEN_SECRET_NAME` | LINE チャネルアクセストークンの Secrets Manager シークレット名 |
-| `LINE_USER_ID_SECRET_NAME` | 送信先 LINE ユーザーID の Secrets Manager シークレット名 |
 | `SES_SENDER_EMAIL` | SES 送信元アドレス |
 | `SES_REPLY_EMAIL` | Reply-To アドレス |
 | `AWS_REGION` | Lambda デプロイリージョン（DynamoDB はこのリージョンを使用） |
