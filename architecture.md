@@ -209,7 +209,6 @@ incident_id = SHA256(incident.raw_text.strip())
            発生時刻: {date} {time}
            発生場所: {ward} {place}
            状況    : {status}
-{mapion_url}
 
  詳細な情報は消防署(宿河原出張所)に直接電話して下さい。
 0449000119
@@ -219,29 +218,30 @@ incident_id = SHA256(incident.raw_text.strip())
  ...（対象地域一覧）
 ```
 
-**エリア・Mapion URL 解決テーブル**
+**エリア解決テーブル（place_mappings）**
 
-`place`（df[4]）をキーにエリア名と地図URLを解決する。
+`place`（df[4]）をキーにエリア名を解決し、メール件名・対象地域表示に使用する。
+メール本文に外部ドメインのリンクは埋め込まない（迷惑メール判定リスクのため）。
 
-| place | エリア名 | Mapion URL |
-|---|---|---|
-| 宿河原1〜7丁目 | 宿河原X丁目 | `mapion.co.jp/address/14135/4:X/` |
-| 堰1〜3丁目 | 堰X丁目 | `mapion.co.jp/address/14135/12:X/` |
-| 長尾1〜7丁目 | 長尾X丁目 | `mapion.co.jp/address/14135/15:X/` |
-| 登戸新町 | 登戸新町 | `mapion.co.jp/address/14135/19/` |
-| 登戸 | 登戸 | `mapion.co.jp/address/14135/18/` |
-| 和泉 | 多摩区和泉 | `mapion.co.jp/address/14135/2/` |
-| 菅稲田堤 | 多摩区菅稲田堤 | `mapion.co.jp/address/14135/6/` |
-| 菅北浦 | 多摩区菅北浦 | `mapion.co.jp/address/14135/7/` |
-| 菅城下 | 多摩区菅城下 | `mapion.co.jp/address/14135/8:/` |
-| 菅仙谷 | 多摩区菅仙谷 | `mapion.co.jp/address/14135/9/` |
-| 菅野戸呂 | 多摩区菅野戸呂 | `mapion.co.jp/address/14135/10/` |
-| 菅馬場 | 多摩区菅馬場 | `mapion.co.jp/address/14135/11/` |
-| 寺尾台 | 多摩区寺尾台 | `mapion.co.jp/address/14135/13/` |
-| 菅（上記以外） | 多摩区菅 | `mapion.co.jp/address/14135/5/` |
-| 中野島 | 多摩区中野島 | `mapion.co.jp/address/14135/14/` |
-| 布田 | 多摩区布田 | `mapion.co.jp/address/14135/22:/` |
-| （該当なし） | 多摩区 | `mapion.co.jp/address/14135/` |
+| place | エリア名 |
+|---|---|
+| 宿河原1〜7丁目 | 宿河原X丁目 |
+| 堰1〜3丁目 | 堰X丁目 |
+| 長尾1〜7丁目 | 長尾X丁目 |
+| 登戸新町 | 登戸新町 |
+| 登戸 | 登戸 |
+| 和泉 | 多摩区和泉 |
+| 菅稲田堤 | 多摩区菅稲田堤 |
+| 菅北浦 | 多摩区菅北浦 |
+| 菅城下 | 多摩区菅城下 |
+| 菅仙谷 | 多摩区菅仙谷 |
+| 菅野戸呂 | 多摩区菅野戸呂 |
+| 菅馬場 | 多摩区菅馬場 |
+| 寺尾台 | 多摩区寺尾台 |
+| 菅（上記以外） | 多摩区菅 |
+| 中野島 | 多摩区中野島 |
+| 布田 | 多摩区布田 |
+| （該当なし） | 多摩区 |
 
 ---
 
@@ -257,7 +257,7 @@ incident_id = SHA256(incident.raw_text.strip())
 | `status` | String | — | `fire` / `extinguished` / `completed` |
 | `detected_at` | String | — | ISO8601タイムスタンプ（JST） |
 | `raw_text` | String | — | 元の火災通知テキスト |
-| `ttl` | Number | — | TTL（検出時刻 + 7日のUnixエポック秒） |
+| `ttl` | Number | — | TTL（検出時刻 + 30日のUnixエポック秒） |
 
 ### 4-2. DynamoDB: `firehorse-page-state`
 
