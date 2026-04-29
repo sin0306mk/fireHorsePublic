@@ -84,7 +84,7 @@
 | 関数シグネチャ | `def lambda_handler(event, context)` |
 | 起動元 | EventBridge Scheduler（1分 cron） |
 | タイムアウト設定 | 30秒（通常の実行は5秒以内） |
-| エラーハンドリング | 例外発生時はエラー内容をログ出力し、SES でエラー通知メール送信 |
+| エラーハンドリング | 未捕捉例外: ログ出力 → SES エラー通知メール送信 → re-raise。`TransientScrapeError`: WARNING ログ → スクレイプアラートメール（1時間に1回・ベストエフォート）→ 正常終了 |
 
 ### 3-2. Scraper（`scraper.py`）
 
@@ -107,7 +107,7 @@ soup.find_all("font") で全 <FONT> タグを取得
 **構造バリデーション**
 
 パース後に以下の2つのバリデーションを実施する。いずれも失敗時は `TransientScrapeError` を送出する。
-`TransientScrapeError` は `_fetch_and_parse_inner` 内でリトライ対象（最大3回・指数バックオフ）となる。全リトライ失敗後は Lambda ハンドラーが捕捉し、`WARNING` ログのみ出力して正常終了する（エラーメール・DLQ アラームは発火しない）。
+`TransientScrapeError` は `_fetch_and_parse_inner` 内でリトライ対象（最大3回・指数バックオフ）となる。全リトライ失敗後は Lambda ハンドラーが捕捉し、`WARNING` ログを出力したうえで、`EMAIL_ERROR_RECIPIENTS` が設定されている場合は1時間に1回のレート制限付きでスクレイプアラートメールを送信し、正常終了する（一般エラーメール・DLQ アラームは発火しない）。
 
 | チェック | 対象 | 条件 | エラーメッセージキーワード |
 |---|---|---|---|
@@ -261,12 +261,12 @@ incident_id = SHA256(incident.raw_text.strip())
 
 ### 4-2. DynamoDB: `firehorse-page-state`
 
-ページ更新タイムスタンプのキャッシュ。未変更時の早期終了に使用する。
+ページ更新タイムスタンプのキャッシュおよびスクレイプアラートのレート制限状態を管理する。スキーマレステーブル。
 
-| 属性 | 型 | キー | 説明 |
+| `key` 値 | 追加属性 | 型 | 説明 |
 |---|---|---|---|
-| `key` | String | PK | 固定値 `"last_timestamp"` |
-| `timestamp` | String | — | 最後に処理したタイムスタンプ文字列 |
+| `"last_timestamp"` | `timestamp` | String | 最後に処理したタイムスタンプ文字列 |
+| `"scrape_alert_sent_at"` | `sent_at` | String | スクレイプアラートメール送信時刻（UTC ISO 8601 形式）。送信成功時のみ保存 |
 
 ---
 
