@@ -106,8 +106,8 @@ soup.find_all("font") で全 <FONT> タグを取得
 
 **構造バリデーション**
 
-パース後に以下の2つのバリデーションを実施する。いずれも失敗時は `ValueError` を送出する。
-`ValueError` は `_fetch_and_parse_inner` 内でリトライ対象（最大3回・指数バックオフ）となる。全リトライ失敗後は Lambda ハンドラーが捕捉し、`WARNING` ログのみ出力して正常終了する（エラーメール・DLQ アラームは発火しない）。
+パース後に以下の2つのバリデーションを実施する。いずれも失敗時は `TransientScrapeError` を送出する。
+`TransientScrapeError` は `_fetch_and_parse_inner` 内でリトライ対象（最大3回・指数バックオフ）となる。全リトライ失敗後は Lambda ハンドラーが捕捉し、`WARNING` ログのみ出力して正常終了する（エラーメール・DLQ アラームは発火しない）。
 
 | チェック | 対象 | 条件 | エラーメッセージキーワード |
 |---|---|---|---|
@@ -348,7 +348,7 @@ incident_id = SHA256(incident.raw_text.strip())
 |---|---|
 | ランタイム | Python 3.12 |
 | アーキテクチャ | x86_64 |
-| メモリ | 128 MB |
+| メモリ | 256 MB |
 | タイムアウト | 30秒 |
 | デプロイ方式 | zip（Lambda Layer で依存ライブラリを管理） |
 | 実行ロール | `firehorse-lambda-role` |
