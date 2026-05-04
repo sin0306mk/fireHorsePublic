@@ -421,3 +421,86 @@ deploy/terraform/
 | メール宛先 | コードにハードコード | `config.yaml` で外部管理 |
 | 通知対象 | 火災・鎮火・災害・ガス漏れ | 火災・鎮火のみ |
 | バグ | メールコードでスロット④⑤⑥が `req[4]` を重複参照 | `req[5]`〜`req[7]` を正しく参照 |
+
+---
+
+## 10. 処理フロー
+
+```
+1分ごとにページ取得
+    │
+    ├─ ページ更新タイムスタンプ（req[1]）が前回と同じ → スキップ（早期終了）
+    │
+    └─ タイムスタンプが変化 → 各スロット（req[2]〜req[7]）を順に処理
+          │
+          ├─ 空スロット（全角スペースのみ） → スキップ
+          │
+          ├─ 火災通知テキストを全角スペースで分割し df[0]〜df[6] を取得
+          │
+          ├─ 共通フィルター評価
+          │     ├─ 生田|枡形|三田|栗谷|長沢|高津区|麻生区 を含む → スキップ
+          │     ├─ 多摩区 を含まない → スキップ
+          │     └─ 火災|鎮火 を含まない → スキップ
+          │
+          ├─ DynamoDB に同一 incident_id が存在する → スキップ（重複排除）
+          │
+          └─ 存在しない（新規）
+                ├─ DynamoDB に保存（TTL: 30日）
+                ├─ df[6] を元に件名プレフィックスを決定
+                │
+                ├─【火災の通報】
+                │     ├─ LINE Messaging API 送信
+                │     └─ SES メール送信
+                │
+                └─【鎮火 / 対応は終了しました】
+                      └─ SES メール送信のみ
+```
+
+---
+
+## 11. ディレクトリ構成
+
+```
+FireHorseCtnr/
+├── src/
+│   ├── app/                    # アプリケーションコード
+│   │   ├── main.py             # Lambda ハンドラー・起動エントリポイント
+│   │   ├── scraper.py          # サイト取得・Shift-JISデコード・HTML解析
+│   │   ├── models.py           # 共通データモデル（FireNotification）
+│   │   ├── filter.py           # 共通フィルター・火災通知パーサー（FilterConfig）
+│   │   ├── dedup.py            # DynamoDB による重複チェック・保存
+│   │   ├── notifier.py         # SES・LINE Messaging API への通知送信
+│   │   ├── config_model.py     # pydantic 設定モデル（AppConfig）
+│   │   └── config.yaml         # チェック間隔・対象エリア・宛先リストなどの設定値
+│   └── tests/                  # テストコード
+│       ├── conftest.py         # pytest設定・共通フィクスチャ
+│       ├── _types.py           # テスト共通 TypedDict 定義
+│       ├── fixtures/
+│       │   └── sample.html     # テスト用HTMLサンプル（実サイトから取得）
+│       ├── unit/               # 純粋関数・変換ロジック（外部依存なし）
+│       │   ├── test_filter.py  # 共通フィルター・パーサーのテスト
+│       │   ├── test_scraper.py # HTML取得・パースのテスト
+│       │   └── test_config_model.py  # AppConfig バリデーションのテスト
+│       ├── integration/        # AWSサービス呼び出しを含む処理
+│       │   ├── test_dedup.py   # 重複排除ロジックのテスト（moto）
+│       │   └── test_notifier.py# 通知送信のテスト（SES・LINEモック）
+│       └── e2e/                # Lambda全体フロー
+│           └── test_handler.py # Lambda ハンドラーの結合確認
+├── deploy/
+│   └── terraform/              # インフラ定義（Terraform）
+│       ├── main.tf
+│       ├── lambda.tf           # Lambda 関数・Layer・zip パッケージ
+│       ├── eventbridge.tf      # EventBridge Scheduler
+│       ├── dynamodb.tf         # DynamoDB テーブル
+│       ├── iam.tf              # Lambda 実行ロール・ポリシー
+│       ├── secrets.tf          # Secrets Manager シークレット定義
+│       ├── monitoring.tf       # SQS DLQ・SNS・CloudWatch Alarms
+│       ├── variables.tf
+│       └── outputs.tf
+├── docs/                       # 仕様書
+├── .devcontainer/
+│   └── devcontainer.json
+├── Makefile                    # ローカル開発・デプロイコマンド
+├── requirements.txt
+└── requirements-dev.txt        # 開発・テスト用依存ライブラリ
+```
